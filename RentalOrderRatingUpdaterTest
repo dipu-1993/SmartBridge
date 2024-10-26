@@ -1,0 +1,30 @@
+@isTest
+public class RentalOrderRatingUpdaterTest {
+    @isTest
+    public static void testRatingUpdater() {
+        // Create mock laptop and customer
+        Laptop__c laptop = new Laptop__c(Name='Test Laptop', Rental_Status__c='Available');
+        insert laptop;
+
+        Customer__c customer = new Customer__c(Name='Test Customer', Email__c='test@example.com');
+        insert customer;
+
+        // Create a rental order
+        Rental_Order__c order = new Rental_Order__c(Customer__c=customer.Id, Laptop__c=laptop.Id, Start_Date__c=Date.today().addDays(-10), End_Date__c=Date.today().addDays(-5));
+        insert order;
+
+        // Create rental returns with ratings
+        Rental_Return__c return1 = new Rental_Return__c(Rental_Order__c=order.Id, Actual_Return_Date__c=Date.today().addDays(-4), Rating__c=String.valueOf(3));
+		Rental_Return__c return2 = new Rental_Return__c(Rental_Order__c=order.Id, Actual_Return_Date__c=Date.today().addDays(-3), Rating__c=String.valueOf(4));
+        insert new List<Rental_Return__c>{return1, return2};
+
+        // Enqueue the rating updater job
+        Test.startTest();
+        System.enqueueJob(new RentalOrderRatingUpdater(order.Id));
+        Test.stopTest();
+
+        // Verify the average rating was updated
+        Rental_Order__c updatedOrder = [SELECT Rating__c FROM Rental_Order__c WHERE Id = :order.Id];
+        System.assertEquals(3.5, updatedOrder.Rating__c, 'Average rating should be correctly updated');
+    }
+}
