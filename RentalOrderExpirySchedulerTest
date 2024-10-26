@@ -1,0 +1,38 @@
+@isTest
+public class RentalOrderExpirySchedulerTest {
+
+    @isTest
+    public static void testSchedulerExecution() {
+        // Step 1: Create a customer
+        Account customer = new Account(Name = 'Test Customer');
+        insert customer;
+
+        // Step 2: Create a rental order expiring in 2 days
+        Rental_Order__c expiringOrder = new Rental_Order__c(
+            Customer__c = customer.Id,
+            End_Date__c = Date.today().addDays(2)
+        );
+        insert expiringOrder;
+
+        // Step 3: Test the scheduler
+        Test.startTest();
+        String jobId = System.schedule('Rental Order Expiry Job', '0 0 0 * * ?', new RentalOrderExpiryScheduler());
+        Test.stopTest();
+
+        // Verify that the scheduled job ran by checking for any queued email operations or other indicators if applicable
+        System.assertNotEquals(null, jobId, 'Job should be scheduled successfully.');
+
+        // Query to confirm email or other reminders are sent; alternatively, log verifications may be used if applicable
+    }
+
+    @isTest
+    public static void testNoExpiringOrders() {
+        // Test scenario with no rental orders expiring
+        Test.startTest();
+        System.schedule('Rental Order Expiry Job', '0 0 0 * * ?', new RentalOrderExpiryScheduler());
+        Test.stopTest();
+
+        // Assertion to check that no email was sent if using a mocked service
+        System.assertEquals(0, Limits.getEmailInvocations(), 'No emails should be sent when there are no expiring orders.');
+    }
+}
