@@ -1,0 +1,18 @@
+public class RentalOrderEmailHandler {
+    // Method to send expiry reminder emails
+    public static void sendExpiryReminder(List<Rental_Order__c> orders) {
+        for (Rental_Order__c order : orders) {
+            // Check if the rental is expiring in 2 days
+            if (order.End_Date__c == Date.today().addDays(2)) {
+                // Create the email message
+                Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+                mail.setSubject('Rental Expiry Reminder');
+                mail.setPlainTextBody('Your rental order is about to expire. Please return the laptop.');
+                mail.setToAddresses(new String[] {order.Customer__r.Email__c});
+                
+                // Send the email
+                Messaging.sendEmail(new Messaging.SingleEmailMessage[] {mail});
+            }
+        }
+    }
+}
