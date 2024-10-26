@@ -1,0 +1,6 @@
+trigger ApplyLateFeeTrigger on Rental_Return__c (before insert, before update) {
+    for (Rental_Return__c returnObj : Trigger.new) {
+        // Process return and calculate late fee if necessary
+        RentalOrderHelper.processReturn(returnObj);
+    }
+}
