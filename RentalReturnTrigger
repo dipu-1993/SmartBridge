@@ -1,0 +1,13 @@
+trigger RentalReturnTrigger on Rental_Return__c (after insert, after update) {
+    Set<Id> rentalOrderIds = new Set<Id>();
+
+    // Collect Rental Order IDs related to the new/updated rental return records
+    for (Rental_Return__c rentalReturn : Trigger.new) {
+        rentalOrderIds.add(rentalReturn.Rental_Order__c);
+    }
+
+    // Enqueue the queueable class for each rental order that has rental return updates
+    for (Id rentalOrderId : rentalOrderIds) {
+        System.enqueueJob(new RentalOrderRatingUpdater(rentalOrderId));
+    }
+}
