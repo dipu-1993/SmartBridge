@@ -1,0 +1,98 @@
+@isTest
+public class ApplyLateFeeTriggerTest {
+    @isTest
+    public static void testLateFeeApplied() {
+        // Create a new laptop
+        Laptop__c laptop = new Laptop__c(Name = 'Test Laptop', Rental_Status__c = 'Available');
+        insert laptop;
+
+        // Create a new customer
+        Customer__c customer = new Customer__c(Name = 'Test Customer', Email__c = 'test@example.com');
+        insert customer;
+
+        // Create a new rental order that is overdue
+        Rental_Order__c rentalOrder = new Rental_Order__c(
+            Customer__c = customer.Id,
+            Laptop__c = laptop.Id,
+            Start_Date__c = Date.today().addDays(-10),
+            End_Date__c = Date.today().addDays(-5)
+        );
+        insert rentalOrder;
+
+        // Create a return with an overdue return date
+        Rental_Return__c returnObj = new Rental_Return__c(
+            Rental_Order__c = rentalOrder.Id,
+            Actual_Return_Date__c = Date.today()
+        );
+
+        // Test the trigger
+        Test.startTest();
+        insert returnObj;
+        Test.stopTest();
+
+        // Verify late fee was applied
+        Rental_Return__c updatedReturn = [SELECT Late_Fee__c FROM Rental_Return__c WHERE Id = :returnObj.Id];
+        System.assert(updatedReturn.Late_Fee__c > 0, 'Late fee should be applied for overdue returns');
+    }
+
+    @isTest
+    public static void testNoLateFeeIfReturnedOnTime() {
+        // Create a new laptop
+        Laptop__c laptop = new Laptop__c(Name = 'Test Laptop', Rental_Status__c = 'Available');
+        insert laptop;
+
+        // Create a new customer
+        Customer__c customer = new Customer__c(Name = 'Test Customer', Email__c = 'test@example.com');
+        insert customer;
+
+        // Create a new rental order with no overdue
+        Rental_Order__c rentalOrder = new Rental_Order__c(
+            Customer__c = customer.Id,
+            Laptop__c = laptop.Id,
+            Start_Date__c = Date.today().addDays(-10),
+            End_Date__c = Date.today()
+        );
+        insert rentalOrder;
+
+        // Create a return with an on-time return date
+        Rental_Return__c returnObj = new Rental_Return__c(
+            Rental_Order__c = rentalOrder.Id,
+            Actual_Return_Date__c = Date.today()
+        );
+
+        // Test the trigger
+        Test.startTest();
+        insert returnObj;
+        Test.stopTest();
+
+        // Verify no late fee was applied
+        Rental_Return__c updatedReturn = [SELECT Late_Fee__c FROM Rental_Return__c WHERE Id = :returnObj.Id];
+        System.assertEquals(0, updatedReturn.Late_Fee__c, 'No late fee should be applied for on-time returns');
+    }
+
+    @isTest
+    public static void testEdgeCaseWithNullDates() {
+        // Create a new laptop
+        Laptop__c laptop = new Laptop__c(Name = 'Test Laptop', Rental_Status__c = 'Available');
+        insert laptop;
+
+        // Create a new customer
+        Customer__c customer = new Customer__c(Name = 'Test Customer', Email__c = 'test@example.com');
+        insert customer;
+
+        // Create a rental order with null dates (simulate edge case)
+        Rental_Order__c rentalOrder = new Rental_Order__c(
+            Customer__c = customer.Id,
+            Laptop__c = laptop.Id
+        );
+        insert rentalOrder;
+
+        // Create a return with null dates (simulate edge case)
+        Rental_Return__c returnObj = new Rental_Return__c(Rental_Order__c = rentalOrder.Id);
+        insert returnObj;
+
+        // Verify that no late fee is applied
+        Rental_Return__c updatedReturn = [SELECT Late_Fee__c FROM Rental_Return__c WHERE Id = :returnObj.Id];
+        System.assertEquals(null, updatedReturn.Late_Fee__c, 'Late fee should be null for edge case with null dates');
+    }
+}
