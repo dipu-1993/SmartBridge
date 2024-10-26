@@ -1,0 +1,38 @@
+public class RentalOrderRatingUpdater implements Queueable, Database.AllowsCallouts {
+
+    private Id rentalOrderId;
+
+    // Constructor to accept Rental Order Id
+    public RentalOrderRatingUpdater(Id rentalOrderId) {
+        this.rentalOrderId = rentalOrderId;
+    }
+
+    // Execute method for queueable apex
+    public void execute(QueueableContext context) {
+        // Fetch related rental return records with ratings for the rental order
+        List<Rental_Return__c> rentalReturns = [
+            SELECT Rating__c
+            FROM Rental_Return__c
+            WHERE Rental_Order__c = :rentalOrderId AND Rating__c != NULL
+        ];
+
+        if (rentalReturns.isEmpty()) {
+            System.debug('No ratings found for this Rental Order');
+            return;
+        }
+
+        // Calculate the total and average rating
+        Decimal totalRating = 0;
+        for (Rental_Return__c rentalReturn : rentalReturns) {
+            totalRating += Decimal.valueOf(rentalReturn.Rating__c);
+        }
+        Decimal averageRating = totalRating / rentalReturns.size();
+
+        // Update the Rental Order with the calculated average rating
+        Rental_Order__c rentalOrder = [SELECT Id, Rating__c FROM Rental_Order__c WHERE Id = :rentalOrderId];
+        rentalOrder.Rating__c = averageRating;
+
+        update rentalOrder;
+        System.debug('Average rating for the rental order has been updated successfully');
+    }
+}
