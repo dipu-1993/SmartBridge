@@ -1,0 +1,42 @@
+@isTest
+public class RentalOrderEmailHandlerTest {
+    @isTest
+    public static void testSendExpiryReminder() {
+        // Create a mock customer and insert it
+        Customer__c customer = new Customer__c(Name = 'Test Customer', Email__c = 'test@example.com');
+        insert customer;
+
+        // Create a mock rental order expiring in 2 days and associate it with the customer
+        Rental_Order__c order = new Rental_Order__c(
+            Customer__c = customer.Id,
+            End_Date__c = Date.today().addDays(2)
+        );
+        insert order;
+
+        // Query the rental order with the necessary relationship fields
+        List<Rental_Order__c> orders = [SELECT Id, End_Date__c, Customer__r.Email__c FROM Rental_Order__c WHERE Id = :order.Id];
+
+        // Start test context
+        Test.startTest();
+        // Call the email reminder method
+        RentalOrderEmailHandler.sendExpiryReminder(orders);
+        // Stop test context
+        Test.stopTest();
+
+        // Assert if email was sent using system debug logs
+        // Use limits to check the number of emails sent
+        Integer emailCount = Limits.getEmailInvocations();
+        System.assertEquals(1, emailCount, 'One email should have been sent');
+    }
+
+    @isTest
+    public static void testSendExpiryReminderNoOrders() {
+        // Call the sendExpiryReminder method with an empty list of orders
+        Test.startTest();
+        RentalOrderEmailHandler.sendExpiryReminder(new List<Rental_Order__c>());
+        Test.stopTest();
+
+        // Assert no emails were sent
+        System.assertEquals(0, Limits.getEmailInvocations(), 'No emails should have been sent');
+    }
+}
