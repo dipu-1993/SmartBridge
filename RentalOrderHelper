@@ -1,0 +1,49 @@
+public class RentalOrderHelper {
+
+    // Method to calculate rental duration
+    public static Integer calculateRentalDuration(Date startDate, Date endDate) {
+        Integer rentalDays = endDate.daysBetween(startDate);
+        return rentalDays;
+    }
+
+    // Method to check laptop availability
+    public static Boolean isLaptopAvailable(Id laptopId) {
+        Laptop__c laptop = [SELECT Rental_Status__c FROM Laptop__c WHERE Id = :laptopId];
+        return laptop.Rental_Status__c == 'Available';
+    }
+
+    // Method to update laptop rental status
+    public static void updateLaptopStatus(List<Laptop__c> laptops, String status) {
+        for (Laptop__c laptop : laptops) {
+            laptop.Rental_Status__c = status;
+        }
+        update laptops;
+    }
+
+    // Method to calculate late fees
+    public static Decimal calculateLateFees(Date endDate, Date actualReturnDate) {
+        Integer overdueDays = actualReturnDate.daysBetween(endDate);
+        Decimal lateFee = 0;
+        if (actualReturnDate > endDate) {
+            overdueDays = endDate.daysBetween(actualReturnDate);
+        } else {
+            overdueDays = 0;
+        }
+        if (overdueDays > 0) {
+            lateFee = overdueDays * 200;
+        }
+        return lateFee;
+    }
+
+    // Method to handle return process
+    public static void processReturn(Rental_Return__c returnObj) {
+        Rental_Order__c rentalOrder = [SELECT End_Date__c, Laptop__c FROM Rental_Order__c WHERE Id = :returnObj.Rental_Order__c];
+        if (returnObj.Actual_Return_Date__c > rentalOrder.End_Date__c) {
+            Decimal lateFee = calculateLateFees(rentalOrder.End_Date__c, returnObj.Actual_Return_Date__c);
+            returnObj.Late_Fee__c = lateFee;
+        }
+        Laptop__c laptop = [SELECT Id, Rental_Status__c FROM Laptop__c WHERE Id = :rentalOrder.Laptop__c];
+        laptop.Rental_Status__c = 'Available';
+        update laptop;
+    }
+}
