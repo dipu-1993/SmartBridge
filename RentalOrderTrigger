@@ -1,0 +1,11 @@
+trigger RentalOrderTrigger on Rental_Order__c (after insert, after update) {
+    if (Trigger.isInsert) {
+        List<Laptop__c> laptops = new List<Laptop__c>();
+        for (Rental_Order__c order : Trigger.new) {
+            Laptop__c laptop = [SELECT Id, Rental_Status__c FROM Laptop__c WHERE Id = :order.Laptop__c];
+            laptop.Rental_Status__c = 'Rented';
+            laptops.add(laptop);
+        }
+        RentalOrderHelper.updateLaptopStatus(laptops, 'Rented');
+    }
+}
