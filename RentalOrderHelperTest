@@ -1,0 +1,50 @@
+@isTest
+public class RentalOrderHelperTest {
+    @isTest
+    public static void testCalculateRentalDuration() {
+        Date startDate = Date.today();
+        Date endDate = startDate.addDays(10);
+        Integer rentalDays = RentalOrderHelper.calculateRentalDuration(startDate, endDate);
+        System.assertEquals(10, rentalDays);
+    }
+
+    @isTest
+    public static void testIsLaptopAvailable() {
+        Laptop__c laptop = new Laptop__c(Name='Test Laptop', Rental_Status__c='Available');
+        insert laptop;
+        Boolean isAvailable = RentalOrderHelper.isLaptopAvailable(laptop.Id);
+        System.assert(isAvailable);
+    }
+
+    @isTest
+    public static void testCalculateLateFees() {
+        Date endDate = Date.today();
+        Date actualReturnDate = endDate.addDays(5);
+        Decimal lateFee = RentalOrderHelper.calculateLateFees(endDate, actualReturnDate);
+        System.assertEquals(1000, lateFee);
+    }
+
+    @isTest
+    public static void testUpdateLaptopStatus() {
+        Laptop__c laptop = new Laptop__c(Name='Test Laptop', Rental_Status__c='Available');
+        insert laptop;
+        Rental_Order__c order = new Rental_Order__c(Laptop__c=laptop.Id, Start_Date__c=Date.today(), End_Date__c=Date.today().addDays(10));
+        insert order;
+        RentalOrderHelper.updateLaptopStatus(new List<Laptop__c>{laptop}, 'Rented');
+        Laptop__c updatedLaptop = [SELECT Rental_Status__c FROM Laptop__c WHERE Id = :laptop.Id];
+        System.assertEquals('Rented', updatedLaptop.Rental_Status__c);
+    }
+
+    @isTest
+    public static void testReturnProcess() {
+        Laptop__c laptop = new Laptop__c(Name = 'Test Laptop', Rental_Status__c = 'Rented');
+        insert laptop;
+        Rental_Order__c order = new Rental_Order__c(Laptop__c = laptop.Id, Start_Date__c = Date.today().addDays(-10), End_Date__c = Date.today().addDays(-5));
+        insert order;
+        Rental_Return__c returnOrder = new Rental_Return__c(Rental_Order__c = order.Id, Actual_Return_Date__c = Date.today());
+        insert returnOrder;
+        RentalOrderHelper.processReturn(returnOrder);
+        Laptop__c updatedLaptop = [SELECT Rental_Status__c FROM Laptop__c WHERE Id = :laptop.Id];
+        System.assertEquals('Available', updatedLaptop.Rental_Status__c);
+    }
+}
