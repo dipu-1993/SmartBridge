@@ -1,0 +1,8 @@
+public class RentalOrderExpiryScheduler implements Schedulable {
+    public void execute(SchedulableContext sc) {
+        List<Rental_Order__c> expiringOrders = [SELECT Id, End_Date__c, Customer__r.Email__c 
+                                                FROM Rental_Order__c 
+                                                WHERE End_Date__c = :Date.today().addDays(2)];
+        RentalOrderEmailHandler.sendExpiryReminder(expiringOrders);
+    }
+}
